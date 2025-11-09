@@ -1,0 +1,3 @@
+/home/kittates/CG/Assignment7/Code/build/CMakeFiles/RayTracing.dir
+/home/kittates/CG/Assignment7/Code/build/CMakeFiles/edit_cache.dir
+/home/kittates/CG/Assignment7/Code/build/CMakeFiles/rebuild_cache.dir
