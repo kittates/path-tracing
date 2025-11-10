@@ -28,7 +28,7 @@ inline  bool solveQuadratic(const float &a, const float &b, const float &c, floa
     return true;
 }
 
-inline float get_random_float()
+inline float get_random_float(float left=0.f, float right=1.f)
 {
     // 设置为静态变量，避免每次都初始化一次
     static std::random_device dev;
@@ -37,6 +37,7 @@ inline float get_random_float()
 
     return dist(rng);
 }
+// add by myself
 
 inline void UpdateProgress(float progress)
 {

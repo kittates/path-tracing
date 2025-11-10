@@ -26,8 +26,8 @@ void Renderer::Render(const Scene& scene)
 
     // change the spp value to change sample ammount
     // spp设置每个像素采样的次数
-    // int spp = 16;
-    int spp = 128;
+    int spp = 4;
+    // int spp = 512;
     std::cout << "SPP: " << spp << "\n";
 
     //-------注释------
@@ -48,27 +48,35 @@ void Renderer::Render(const Scene& scene)
     // }
     //-----注释------
     // 多线程优化
-    int num_threads = 4;
+    // ATTENTION!! do not change the num_threads value
+    int num_threads = 4;    
     std::vector<std::thread> threads(num_threads);
-    std::mutex mtx;
-    int thread_height = scene.height / num_threads;
-    float process=0;
-    float Reciprocal_Scene_height=1.f/ (float)scene.height;
+    std::mutex mtx; // 用于同步输出进度
+    int thread_height = scene.height / num_threads; // 每个线程负责的行数
+    float process=0;    // 全局渲染速度
+    float Reciprocal_Scene_height=1.f/ (float)scene.height; // 每行对应的进度增量
 
     auto renderRows = [&](int thread_index) {
         int height = thread_height * (thread_index + 1);
-        for(uint32_t j=height - thread_height; j<height; j++) {
+        for(uint32_t j=height - thread_height; j<height; j++) { 
             for(uint32_t i=0; i<scene.width; i++) {
-                float x = (2 * (i + 0.5) / (float)scene.width - 1) *
-                        imageAspectRatio * scale;
-                float y = (1 - 2 * (j + 0.5) / (float)scene.height) * scale;
-
-                Vector3f dir = normalize(Vector3f(-x, y, 1));
+                
                 for (int k = 0; k < spp; k++){
+                    
+                    // 在单个像素内进行随机扰动采样
+                    // float x = (2 * (i + get_random_float()-0.5f + EPSILON) / (float)scene.width - 1) * imageAspectRatio * scale;
+                    // float y = (1 - 2 * (j + get_random_float()-0.5f - EPSILON) / (float)scene.height) * scale;
+                    
+                    float x = (2 * (i + 0.5f) / (float)scene.width - 1) * imageAspectRatio * scale;
+                    float y = (1 - 2 * (j + 0.5f) / (float)scene.height) * scale;
+
+                    Vector3f dir = normalize(Vector3f(-x, y, 1));
+                    // 这里不再使用m++
                     framebuffer[j * scene.width + i] += scene.castRay(Ray(eye_pos, dir), 0) / spp;  
                 }
                 // m++;
             }
+            // 互斥更新进度条
             mtx.lock();
             process += Reciprocal_Scene_height;
             UpdateProgress(process);
@@ -82,7 +90,7 @@ void Renderer::Render(const Scene& scene)
     }
     for (int k = 0; k < num_threads; k++)
     {
-        threads[k].join();
+        threads[k].join();  // 等待所有线程完成
     }
 
     UpdateProgress(1.f);
