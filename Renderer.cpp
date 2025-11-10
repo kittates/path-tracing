@@ -24,8 +24,12 @@ void Renderer::Render(const Scene& scene)
     int m = 0;
 
     // change the spp value to change sample ammount
-    int spp = 16;
+    // spp设置每个像素采样的次数
+    // int spp = 16;
+    int spp = 8;
     std::cout << "SPP: " << spp << "\n";
+
+    //-------注释------
     for (uint32_t j = 0; j < scene.height; ++j) {
         for (uint32_t i = 0; i < scene.width; ++i) {
             // generate primary ray direction
@@ -42,7 +46,9 @@ void Renderer::Render(const Scene& scene)
         UpdateProgress(j / (float)scene.height);
     }
     UpdateProgress(1.f);
+    //-----注释------
 
+    
     // save framebuffer to file
     FILE* fp = fopen("binary.ppm", "wb");
     (void)fprintf(fp, "P6\n%d %d\n255\n", scene.width, scene.height);

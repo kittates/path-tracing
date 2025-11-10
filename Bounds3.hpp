@@ -103,7 +103,7 @@ inline bool Bounds3::IntersectP(const Ray& ray, const Vector3f& invDir,
     std::vector<float> t = IntersectP_d(ray, invDir, dirIsNeg);
     float t_enter = t[0];
     float t_exit = t[1];
-    if(t_exit>=0 && t_enter<t_exit) return true;
+    if(t_exit>=0 && t_enter<=t_exit) return true;
     return false;
 
 }
