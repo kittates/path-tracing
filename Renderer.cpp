@@ -4,6 +4,7 @@
 
 #include <fstream>
 #include "Scene.hpp"
+#include <thread>
 #include "Renderer.hpp"
 
 
@@ -26,27 +27,65 @@ void Renderer::Render(const Scene& scene)
     // change the spp value to change sample ammount
     // spp设置每个像素采样的次数
     // int spp = 16;
-    int spp = 8;
+    int spp = 128;
     std::cout << "SPP: " << spp << "\n";
 
     //-------注释------
-    for (uint32_t j = 0; j < scene.height; ++j) {
-        for (uint32_t i = 0; i < scene.width; ++i) {
-            // generate primary ray direction
-            float x = (2 * (i + 0.5) / (float)scene.width - 1) *
-                      imageAspectRatio * scale;
-            float y = (1 - 2 * (j + 0.5) / (float)scene.height) * scale;
+    // for (uint32_t j = 0; j < scene.height; ++j) {
+    //     for (uint32_t i = 0; i < scene.width; ++i) {
+    //         // generate primary ray direction
+    //         float x = (2 * (i + 0.5) / (float)scene.width - 1) *
+    //                   imageAspectRatio * scale;
+    //         float y = (1 - 2 * (j + 0.5) / (float)scene.height) * scale;
 
-            Vector3f dir = normalize(Vector3f(-x, y, 1));
-            for (int k = 0; k < spp; k++){
-                framebuffer[m] += scene.castRay(Ray(eye_pos, dir), 0) / spp;  
-            }
-            m++;
-        }
-        UpdateProgress(j / (float)scene.height);
-    }
-    UpdateProgress(1.f);
+    //         Vector3f dir = normalize(Vector3f(-x, y, 1));
+    //         for (int k = 0; k < spp; k++){
+    //             framebuffer[m] += scene.castRay(Ray(eye_pos, dir), 0) / spp;  
+    //         }
+    //         m++;
+    //     }
+    //     UpdateProgress(j / (float)scene.height);
+    // }
     //-----注释------
+    // 多线程优化
+    int num_threads = 4;
+    std::vector<std::thread> threads(num_threads);
+    std::mutex mtx;
+    int thread_height = scene.height / num_threads;
+    float process=0;
+    float Reciprocal_Scene_height=1.f/ (float)scene.height;
+
+    auto renderRows = [&](int thread_index) {
+        int height = thread_height * (thread_index + 1);
+        for(uint32_t j=height - thread_height; j<height; j++) {
+            for(uint32_t i=0; i<scene.width; i++) {
+                float x = (2 * (i + 0.5) / (float)scene.width - 1) *
+                        imageAspectRatio * scale;
+                float y = (1 - 2 * (j + 0.5) / (float)scene.height) * scale;
+
+                Vector3f dir = normalize(Vector3f(-x, y, 1));
+                for (int k = 0; k < spp; k++){
+                    framebuffer[j * scene.width + i] += scene.castRay(Ray(eye_pos, dir), 0) / spp;  
+                }
+                // m++;
+            }
+            mtx.lock();
+            process += Reciprocal_Scene_height;
+            UpdateProgress(process);
+            mtx.unlock();
+        }
+    };
+    
+    for (int k = 0; k < num_threads; k++)
+    {
+        threads[k] = std::thread(renderRows,k);
+    }
+    for (int k = 0; k < num_threads; k++)
+    {
+        threads[k].join();
+    }
+
+    UpdateProgress(1.f);
 
     
     // save framebuffer to file
